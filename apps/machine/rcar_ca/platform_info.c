@@ -23,22 +23,43 @@
 #include <sys/un.h>
 #include "platform_info.h"
 
-#define SHM_DEV_NAME		"81000000.rpmsg_shm"
-#define IPI_DEV_NAME		"18800000.rpmsg_ipi"
-#define DEV_BUS_NAME		"platform"
-
-#define RSC_MEM_PA		0x81000000UL
-#define RSC_MEM_SIZE		0x1000UL
-#define VRING_MEM_PA		0x81001000UL
-#define VRING_MEM_OFFSET	0x4000UL
-#define SHARED_BUF_PA		0x81009000UL
-#define SHARED_BUF_SIZE		0x40000UL
-
-struct remoteproc_priv rproc_priv = {
-	.shm_name = SHM_DEV_NAME,
-	.shm_bus_name = DEV_BUS_NAME,
-	.ipi_name = IPI_DEV_NAME,
-	.ipi_bus_name = DEV_BUS_NAME,
+struct remoteproc_priv rproc_priv[] = {
+	{
+		.shm_name		= "81000000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.ipi_name		= "18800000.rpmsg_ipi",
+		.ipi_bus_name		= "platform",
+		.rsc_mem_pa		= 0x81000000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= 0x81001000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= 0x81009000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		.shm_name		= "81050000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.ipi_name		= "18801000.rpmsg_ipi",
+		.ipi_bus_name		= "platform",
+		.rsc_mem_pa		= 0x81050000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= 0x81051000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= 0x81059000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		.shm_name		= "810a0000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.ipi_name		= "18802000.rpmsg_ipi",
+		.ipi_bus_name		= "platform",
+		.rsc_mem_pa		= 0x810a0000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= 0x810a1000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= 0x810a9000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		/* Terminator */
+	}
 };
 
 static struct remoteproc rproc_inst;
@@ -61,19 +82,18 @@ platform_create_proc(int proc_index, int rsc_index)
 	int rsc_size;
 	int ret;
 	metal_phys_addr_t pa;
+	struct remoteproc_priv *priv = &rproc_priv[proc_index];
 
-	(void)proc_index;
 	(void)rsc_index;
-	rsc_size = RSC_MEM_SIZE;
+	rsc_size = priv->rsc_mem_size;
 
 	/* Initialize remoteproc instance */
-	if (!remoteproc_init(&rproc_inst, &rcar_ca_linux_proc_ops,
-			     &rproc_priv))
+	if (!remoteproc_init(&rproc_inst, &rcar_ca_linux_proc_ops, priv))
 		return NULL;
 	printf("Successfully initialized remoteproc\r\n");
 
 	/* Mmap resource table */
-	pa = RSC_MEM_PA;
+	pa = priv->rsc_mem_pa;
 	printf("Calling mmap resource table.\r\n");
 	rsc_table = remoteproc_mmap(&rproc_inst, &pa, NULL, rsc_size,
 				    0, NULL);
@@ -110,7 +130,14 @@ int platform_init(int argc, char *argv[], void **platform)
 	init_system();
 
 	if (argc >= 2) {
+		unsigned long num_proc = sizeof(rproc_priv) / sizeof(rproc_priv[0]) - 1;
+
 		proc_id = strtoul(argv[1], NULL, 0);
+		if (proc_id >= num_proc) {
+			fprintf(stderr, "Failed to initialize platform,"
+				" the rproc ID is not supported.\r\n");
+			return -EINVAL;
+		}
 	}
 
 	if (argc >= 3) {
@@ -148,11 +175,12 @@ void platform_update_vring_addr(struct remoteproc *rproc, unsigned int vdev_id, 
 
 	for (i = 0; i < num_vrings; i++) {
 		struct fw_rsc_vdev_vring *vring_rsc;
+		struct remoteproc_priv *priv = rproc->priv;
 
 		vring_rsc = &vdev_rsc->vring[i];
 
 		if (vring_rsc->da == FW_RSC_U32_ADDR_ANY)
-			vring_rsc->da = VRING_MEM_PA + i * VRING_MEM_OFFSET;
+			vring_rsc->da = priv->vring_mem_pa + i * priv->vring_mem_offset;
 	}
 
 err:
@@ -166,6 +194,7 @@ platform_create_rpmsg_vdev(void *platform, unsigned int vdev_index,
 			   rpmsg_ns_bind_cb ns_bind_cb)
 {
 	struct remoteproc *rproc = platform;
+	struct remoteproc_priv *priv = rproc->priv;
 	struct rpmsg_virtio_device *rpmsg_vdev;
 	struct virtio_device *vdev;
 	void *shbuf;
@@ -175,11 +204,10 @@ platform_create_rpmsg_vdev(void *platform, unsigned int vdev_index,
 	rpmsg_vdev = metal_allocate_memory(sizeof(*rpmsg_vdev));
 	if (!rpmsg_vdev)
 		return NULL;
-	shbuf_io = remoteproc_get_io_with_pa(rproc, SHARED_BUF_PA);
+	shbuf_io = remoteproc_get_io_with_pa(rproc, priv->shared_buf_pa);
 	if (!shbuf_io)
 		goto err1;
-	shbuf = metal_io_phys_to_virt(shbuf_io,
-				      SHARED_BUF_PA);
+	shbuf = metal_io_phys_to_virt(shbuf_io, priv->shared_buf_pa);
 
 	platform_update_vring_addr(rproc, vdev_index, role);
 
@@ -193,7 +221,7 @@ platform_create_rpmsg_vdev(void *platform, unsigned int vdev_index,
 	printf("Successfully created virtio device.\r\n");
 
 	/* Only RPMsg virtio driver needs to initialize the shared buffers pool */
-	rpmsg_virtio_init_shm_pool(&shpool, shbuf, SHARED_BUF_SIZE);
+	rpmsg_virtio_init_shm_pool(&shpool, shbuf, priv->shared_buf_size);
 
 	printf("initializing rpmsg vdev\r\n");
 	/* RPMsg virtio device can set shared buffers pool argument to NULL */
