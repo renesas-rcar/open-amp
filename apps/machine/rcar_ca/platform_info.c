@@ -23,6 +23,7 @@
 #include <sys/un.h>
 #include "platform_info.h"
 
+#ifdef VDK_ENV
 struct remoteproc_priv rproc_priv[] = {
 	{
 		.shm_name		= "81000000.rpmsg_shm",
@@ -61,6 +62,46 @@ struct remoteproc_priv rproc_priv[] = {
 		/* Terminator */
 	}
 };
+#else	/* !VDK_ENV */
+struct remoteproc_priv rproc_priv[] = {
+	{
+		.shm_name		= "96600000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.ipi_name		= "18800000.rpmsg_ipi",
+		.ipi_bus_name		= "platform",
+		.rsc_mem_pa		= 0x96600000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= 0x96601000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= 0x96609000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		.shm_name		= "96650000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.ipi_name		= "18801000.rpmsg_ipi",
+		.ipi_bus_name		= "platform",
+		.rsc_mem_pa		= 0x96650000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= 0x96651000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= 0x96659000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		.shm_name		= "966a0000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.ipi_name		= "18802000.rpmsg_ipi",
+		.ipi_bus_name		= "platform",
+		.rsc_mem_pa		= 0x966a0000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= 0x966a1000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= 0x966a9000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		/* Terminator */
+	}
+};
+#endif	/* VDK_ENV */
 
 static struct remoteproc rproc_inst;
 
