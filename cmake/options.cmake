@@ -140,4 +140,8 @@ endif (DEFINED RPMSG_BUFFER_SIZE)
 
 option (WITH_DOC "Build with documentation" OFF)
 
+if (VDK_ENV)
+  add_definitions(-DVDK_ENV)
+endif (VDK_ENV)
+
 message ("-- C_FLAGS : ${CMAKE_C_FLAGS}")
