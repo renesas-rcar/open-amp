@@ -15,7 +15,7 @@ collector_list (_deps PROJECT_LIB_DEPS)
 
 set (OPENAMP_LIB open_amp)
 
-foreach (_app rpmsg-rcar-sample)
+foreach (_app rpmsg-rcar-sample rpmsg-rcar-perf)
   collector_list (_sources APP_COMMON_SOURCES)
   list (APPEND _sources "${CMAKE_CURRENT_SOURCE_DIR}/${_app}.c")
 
