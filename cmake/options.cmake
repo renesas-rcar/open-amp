@@ -144,4 +144,8 @@ if (VDK_ENV)
   add_definitions(-DVDK_ENV)
 endif (VDK_ENV)
 
+if (RFS2X_ENV)
+  add_definitions(-DRFS2X_ENV)
+endif (RFS2X_ENV)
+
 message ("-- C_FLAGS : ${CMAKE_C_FLAGS}")

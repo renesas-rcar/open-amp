@@ -39,7 +39,10 @@ struct remoteproc_priv {
 	struct remoteproc_mem shm_mem; /**< shared memory */
 	unsigned int ipi_chn_mask; /**< IPI channel mask */
 	atomic_int ipi_nokick;
+	int use_mem_kick; /**< use memory-based kick when no IPI device */
 };
+
+int rcar_ca_linux_proc_mem_check(struct remoteproc_priv *prproc);
 
 #if defined __cplusplus
 }

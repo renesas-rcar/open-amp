@@ -25,6 +25,28 @@
 #define IPI_OBS_OFFSET  0x00000000 /* IPI observation register offset */
 #define IPI_TRIG_OFFSET 0x00000004 /* IPI trigger register offset */
 
+#define OFFSET_MEM_KICK_PA		0x500
+#define OFFSET_MEM_CHECK_NOTIFY		0x04
+
+int rcar_ca_linux_proc_mem_check(struct remoteproc_priv *prproc)
+{
+	uint32_t val;
+
+	if (!prproc->shm_io)
+		return 0;
+
+	val = metal_io_read32(prproc->shm_io,
+			      OFFSET_MEM_KICK_PA + OFFSET_MEM_CHECK_NOTIFY);
+	if (val & (1U << 0)) {
+		metal_io_write32(prproc->shm_io,
+				 OFFSET_MEM_KICK_PA + OFFSET_MEM_CHECK_NOTIFY,
+				 val & ~(1U << 0));
+		return 1;
+	}
+
+	return 0;
+}
+
 static int rcar_ca_linux_proc_irq_handler(int vect_id, void *data)
 {
 	struct remoteproc *rproc = data;
@@ -84,31 +106,35 @@ rcar_ca_linux_proc_init(struct remoteproc *rproc,
 	remoteproc_add_mem(rproc, &prproc->shm_mem);
 	printf("Successfully added shared memory\r\n");
 
-	/* Get IPI device */
-	ret = metal_device_open(prproc->ipi_bus_name, prproc->ipi_name,
-				&dev);
-	if (ret) {
-		printf("failed to open ipi device: %d.\r\n", ret);
-		goto err2;
+	if (prproc->ipi_name &&
+	    !metal_device_open(prproc->ipi_bus_name, prproc->ipi_name, &dev)) {
+		prproc->ipi_dev = dev;
+		prproc->ipi_io = metal_device_io_region(dev, 0);
+		if (prproc->ipi_io) {
+			atomic_store(&prproc->ipi_nokick, 1);
+			metal_io_write32(prproc->ipi_io, IPI_OBS_OFFSET, 0);
+			irq_vect = (uintptr_t)dev->irq_info;
+			metal_irq_register(irq_vect,
+					   rcar_ca_linux_proc_irq_handler, rproc);
+			metal_irq_enable(irq_vect);
+			printf("Successfully initialized Linux remoteproc.\r\n");
+			return rproc;
+		}
+		metal_device_close(dev);
+		prproc->ipi_dev = NULL;
 	}
-	prproc->ipi_dev = dev;
-	prproc->ipi_io = metal_device_io_region(dev, 0);
-	if (!prproc->ipi_io)
-		goto err3;
-	printf("Successfully probed IPI device\r\n");
-	atomic_store(&prproc->ipi_nokick, 1);
 
-	metal_io_write32(prproc->ipi_io, IPI_OBS_OFFSET, 0);
-	/* Register interrupt handler and enable interrupt */
-	irq_vect = (uintptr_t)dev->irq_info;
-	metal_irq_register(irq_vect, rcar_ca_linux_proc_irq_handler, rproc);
-	metal_irq_enable(irq_vect);
-	printf("Successfully initialized Linux remoteproc.\r\n");
+	if (prproc->shm_io) {
+		prproc->use_mem_kick = 1;
+		atomic_store(&prproc->ipi_nokick, 1);
+		metal_io_write32(prproc->shm_io,
+				 OFFSET_MEM_KICK_PA + OFFSET_MEM_CHECK_NOTIFY, 0);
+		printf("Successfully initialized memory-based kick.\r\n");
+		return rproc;
+	}
 
-	return rproc;
+	printf("failed to find ipi device and shared memory to poll.\r\n");
 
-err3:
-	metal_device_close(prproc->ipi_dev);
 err2:
 	metal_device_close(prproc->shm_dev);
 err1:
@@ -178,6 +204,12 @@ static int rcar_ca_linux_proc_notify(struct remoteproc *rproc, uint32_t id)
 		return -1;
 
 	prproc = rproc->priv;
+
+	if (prproc->use_mem_kick) {
+		metal_io_write32(prproc->shm_io, OFFSET_MEM_KICK_PA, 1U << 0);
+		return 0;
+	}
+
 	metal_io_write32(prproc->ipi_io, IPI_TRIG_OFFSET, 0x1);
 	return 0;
 }

@@ -62,7 +62,82 @@ struct remoteproc_priv rproc_priv[] = {
 		/* Terminator */
 	}
 };
-#else	/* !VDK_ENV */
+#elif defined(RFS2X_ENV)	/* RFS2X_ENV */
+struct remoteproc_priv rproc_priv[] = {
+	{
+		.shm_name		= "96600000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.ipi_name		= "18800000.rpmsg_ipi",
+		.ipi_bus_name		= "platform",
+		.rsc_mem_pa		= 0x96600000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= 0x96601000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= 0x96609000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		.shm_name		= "96650000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.ipi_name		= "18801000.rpmsg_ipi",
+		.ipi_bus_name		= "platform",
+		.rsc_mem_pa		= 0x96650000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= 0x96651000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= 0x96659000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		.shm_name		= "966a0000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.ipi_name		= "18802000.rpmsg_ipi",
+		.ipi_bus_name		= "platform",
+		.rsc_mem_pa		= 0x966a0000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= 0x966a1000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= 0x966a9000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		.shm_name		= "90000000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.rsc_mem_pa		= 0x90000000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= 0x90001000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= 0x90010000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		.shm_name		= "90050000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.rsc_mem_pa		= 0x90050000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= 0x90051000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= 0x90060000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		.shm_name		= "90200000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.rsc_mem_pa		= 0x90200000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= 0x90201000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= 0x90210000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		.shm_name		= "90250000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.rsc_mem_pa		= 0x90250000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= 0x90251000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= 0x90260000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		/* Terminator */
+	}
+};
+#else	/* HIL_ENV */
 struct remoteproc_priv rproc_priv[] = {
 	{
 		.shm_name		= "96600000.rpmsg_shm",
@@ -289,6 +364,18 @@ int platform_poll(void *priv)
 
 	prproc = rproc->priv;
 	while (1) {
+		if (prproc->use_mem_kick) {
+			if (rcar_ca_linux_proc_mem_check(prproc)) {
+				ret = remoteproc_get_notification(rproc,
+								  RSC_NOTIFY_ID_ANY);
+				if (ret)
+					return ret;
+				break;
+			}
+			_rproc_wait();
+			continue;
+		}
+
 		flags = metal_irq_save_disable();
 		if (!(atomic_flag_test_and_set(&prproc->ipi_nokick))) {
 			metal_irq_restore_enable(flags);
