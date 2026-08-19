@@ -23,6 +23,9 @@
 #include <sys/un.h>
 #include "platform_info.h"
 
+#define UCIE_D2D_BASE0		0x20000000000ULL
+#define UCIE_D2D_BASE1		0x24000000000ULL
+
 #ifdef VDK_ENV
 struct remoteproc_priv rproc_priv[] = {
 	{
@@ -171,6 +174,60 @@ struct remoteproc_priv rproc_priv[] = {
 		.vring_mem_pa		= 0x966a1000UL,
 		.vring_mem_offset	= 0x4000UL,
 		.shared_buf_pa		= 0x966a9000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		.shm_name		= "2008e600000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.rsc_mem_pa		= UCIE_D2D_BASE0 + 0x8e600000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= UCIE_D2D_BASE0 + 0x8e601000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= UCIE_D2D_BASE0 + 0x8e609000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		.shm_name		= "2008e650000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.rsc_mem_pa		= UCIE_D2D_BASE0 + 0x8e650000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= UCIE_D2D_BASE0 + 0x8e651000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= UCIE_D2D_BASE0 + 0x8e659000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		.shm_name		= "2008e6a0000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.rsc_mem_pa		= UCIE_D2D_BASE0 + 0x8e6a0000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= UCIE_D2D_BASE0 + 0x8e6a1000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= UCIE_D2D_BASE0 + 0x8e6a9000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		.shm_name		= "2408e600000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.rsc_mem_pa		= UCIE_D2D_BASE1 + 0x8e600000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= UCIE_D2D_BASE1 + 0x8e601000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= UCIE_D2D_BASE1 + 0x8e609000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		.shm_name		= "2408e650000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.rsc_mem_pa		= UCIE_D2D_BASE1 + 0x8e650000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= UCIE_D2D_BASE1 + 0x8e651000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= UCIE_D2D_BASE1 + 0x8e659000UL,
+		.shared_buf_size	= 0x40000UL,
+	}, {
+		.shm_name		= "2408e6a0000.rpmsg_shm",
+		.shm_bus_name		= "platform",
+		.rsc_mem_pa		= UCIE_D2D_BASE1 + 0x8e6a0000UL,
+		.rsc_mem_size		= 0x1000UL,
+		.vring_mem_pa		= UCIE_D2D_BASE1 + 0x8e6a1000UL,
+		.vring_mem_offset	= 0x4000UL,
+		.shared_buf_pa		= UCIE_D2D_BASE1 + 0x8e6a9000UL,
 		.shared_buf_size	= 0x40000UL,
 	}, {
 		/* Terminator */

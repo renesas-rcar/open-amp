@@ -100,7 +100,9 @@ rcar_ca_linux_proc_init(struct remoteproc *rproc,
 		goto err2;
 
 	mem_pa = metal_io_phys(prproc->shm_io, 0);
-	remoteproc_init_mem(&prproc->shm_mem, "shm", mem_pa, mem_pa,
+	/* Over the UCIe, the device address is the low 32-bit of physical addres */
+	remoteproc_init_mem(&prproc->shm_mem, "shm", mem_pa,
+			    mem_pa & 0xFFFFFFFFUL,
 			    metal_io_region_size(prproc->shm_io),
 			    prproc->shm_io);
 	remoteproc_add_mem(rproc, &prproc->shm_mem);
